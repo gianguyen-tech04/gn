@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LocketMoney - Lịch & Ghi nhận</title>
+    <title>LocketMoney - Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #000000;
             --card-bg: #1c1c1e;
-            --primary: #ff2a5f;
-            --primary-gradient: linear-gradient(135deg, #ff2a5f, #ff7e40);
+            --primary: #ffb703; /* Locket Yellow mặc định */
+            --primary-gradient: linear-gradient(135deg, #ffb703, #fb8500);
             --text-main: #ffffff;
             --text-muted: #8e8e93;
             --squircle-radius: 36px;
@@ -20,7 +21,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -29,188 +30,160 @@
             color: var(--text-main);
             padding: 15px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
             min-height: 100vh;
         }
 
-        /* Bố cục chia 2 cột */
-        .layout-container {
-            display: flex;
-            flex-direction: row;
-            gap: 20px;
+        /* --- TOP BAR: SỐ DƯ & THEME --- */
+        .top-bar {
             width: 100%;
             max-width: 900px;
-            align-items: flex-start;
-        }
-
-        .col-left, .col-right {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            width: 100%;
-        }
-
-        /* --- CỘT TRÁI: LỊCH --- */
-        .calendar-card {
-            background-color: var(--card-bg);
-            border-radius: 24px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-        .calendar-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            font-weight: 700;
-            font-size: 18px;
+            background-color: var(--card-bg);
+            padding: 15px 20px;
+            border-radius: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .balance-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .balance-label { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+        .balance-amount { font-size: 24px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 8px;}
+        .edit-balance-btn {
+            background: #333; color: white; border: none; border-radius: 50%;
+            width: 28px; height: 28px; cursor: pointer; font-size: 12px;
+        }
+        .theme-picker { display: flex; gap: 8px; }
+        .theme-dot {
+            width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+            border: 2px solid #333; transition: transform 0.2s;
+        }
+        .theme-dot:active { transform: scale(0.8); }
+
+        /* Bố cục chia 2 cột */
+        .layout-container {
+            display: flex; flex-direction: row; gap: 20px;
+            width: 100%; max-width: 900px; align-items: flex-start;
+        }
+        .col-left, .col-right { flex: 1; display: flex; flex-direction: column; gap: 20px; width: 100%; }
+
+        /* --- CỘT TRÁI: LỊCH & BIỂU ĐỒ --- */
+        .panel-card {
+            background-color: var(--card-bg); border-radius: 24px;
+            padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .calendar-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; font-weight: 700; font-size: 18px;
         }
         .calendar-btn {
-            background: #333;
-            color: white;
-            border: none;
-            padding: 5px 12px;
-            border-radius: 12px;
-            cursor: pointer;
+            background: #333; color: white; border: none;
+            padding: 5px 12px; border-radius: 12px; cursor: pointer;
         }
         .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            text-align: center;
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center;
         }
-        .day-name {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
+        .day-name { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 5px; }
         .day-cell {
-            padding: 8px 0;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+            position: relative;
+            padding: 10px 0; border-radius: 12px; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; height: 45px;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
         }
         .day-cell:hover { background-color: #333; }
-        .day-cell.active {
-            background: var(--primary-gradient);
-            color: white;
-            box-shadow: 0 4px 10px rgba(255, 42, 95, 0.4);
+        .day-cell.active { background: var(--primary-gradient); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .day-thumb {
+            width: 20px; height: 20px; border-radius: 6px; background-size: cover; background-position: center;
+            position: absolute; bottom: 4px; border: 1px solid rgba(255,255,255,0.2);
         }
-        
-        /* Cột Lịch Sử */
-        .history-list { display: flex; flex-direction: column; gap: 10px; }
-        .history-item {
-            display: flex; align-items: center; justify-content: space-between;
-            background-color: var(--card-bg); padding: 12px; border-radius: 16px;
-        }
-        .history-info { display: flex; align-items: center; gap: 12px; }
-        .history-thumb {
-            width: 45px; height: 45px; border-radius: 12px;
-            background-size: cover; background-position: center; background-color: #333;
-        }
-        .history-cat { font-size: 14px; font-weight: 700; }
-        .history-date { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-        .history-amount { font-size: 15px; font-weight: 800; color: var(--primary); }
+        .chart-container { width: 100%; height: 200px; margin-top: 10px; }
 
         /* --- CỘT PHẢI: LOCKET GHI NHẬN --- */
         .locket-card {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            background-color: var(--card-bg);
-            border-radius: var(--squircle-radius);
-            display: flex; justify-content: center; align-items: center; flex-direction: column;
-            position: relative; overflow: hidden;
-            border: 2px dashed #444;
-            background-size: cover; background-position: center;
-            cursor: pointer; transition: transform 0.2s;
+            width: 100%; aspect-ratio: 1 / 1; background-color: var(--card-bg);
+            border-radius: var(--squircle-radius); display: flex; justify-content: center; align-items: center; flex-direction: column;
+            position: relative; overflow: hidden; border: 2px dashed #444;
+            background-size: cover; background-position: center; cursor: pointer; transition: transform 0.2s;
         }
         .locket-card:active { transform: scale(0.97); }
         .locket-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-muted); }
         .locket-placeholder svg { width: 40px; height: 40px; fill: var(--text-muted); }
         #photo-input { display: none; }
 
-        /* Khung nhập số tiền tùy ý */
-        .input-group {
-            position: relative;
-            width: 100%;
-        }
+        .input-group { position: relative; width: 100%; }
         .amount-input {
-            width: 100%;
-            background-color: var(--card-bg);
-            border: 2px solid transparent;
-            color: var(--text-main);
-            font-size: 28px;
-            font-weight: 800;
-            text-align: center;
-            padding: 15px;
-            border-radius: 20px;
-            outline: none;
-            transition: all 0.2s;
+            width: 100%; background-color: var(--card-bg); border: 2px solid transparent;
+            color: var(--text-main); font-size: 28px; font-weight: 800; text-align: center;
+            padding: 15px; border-radius: 20px; outline: none; transition: all 0.2s;
         }
         .amount-input:focus { border-color: var(--primary); }
-        .amount-input::placeholder { color: #555; }
-
-        /* Nút tính nhanh & Danh mục */
+        
         .quick-add { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
         .btn-chip, .cat-btn {
             background-color: var(--card-bg); color: var(--text-muted);
-            border: 2px solid transparent; padding: 10px 14px;
-            border-radius: 16px; font-size: 14px; font-weight: 700;
-            cursor: pointer; transition: all 0.2s;
+            border: 2px solid transparent; padding: 10px 14px; border-radius: 16px;
+            font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
         }
         .btn-chip { background-color: #333; color: white; border: none; }
         .btn-chip:active { transform: scale(0.95); }
-        
-        .cat-btn.active {
-            border-color: var(--primary);
-            color: var(--primary);
-            background-color: rgba(255, 42, 95, 0.1);
-        }
+        .cat-btn.active { border-color: var(--primary); color: var(--primary); background-color: rgba(255,255,255,0.05); }
 
-        /* Nút Ghi nhận */
         .submit-btn {
             background: var(--primary-gradient); color: white; border: none;
-            width: 100%; padding: 18px; border-radius: 24px;
-            font-size: 18px; font-weight: 800; cursor: pointer;
-            box-shadow: 0 8px 20px rgba(255, 42, 95, 0.3); transition: transform 0.2s;
+            width: 100%; padding: 18px; border-radius: 24px; font-size: 18px; font-weight: 800;
+            cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.3); transition: transform 0.2s;
         }
         .submit-btn:active { transform: scale(0.95); }
 
-        /* Responsive cho điện thoại (xếp chồng lên nhau) */
-        @media (max-width: 768px) {
-            .layout-container { flex-direction: column; }
-        }
+        @media (max-width: 768px) { .layout-container { flex-direction: column; } }
     </style>
 </head>
 <body>
 
+<!-- KHUNG SỐ DƯ & THEME -->
+<div class="top-bar">
+    <div class="balance-info">
+        <span class="balance-label">Số dư hiện tại</span>
+        <div class="balance-amount">
+            <span id="balance-display">0 đ</span>
+            <button class="edit-balance-btn" onclick="setInitialBalance()">✏️</button>
+        </div>
+    </div>
+    <div class="theme-picker">
+        <div class="theme-dot" style="background: #ffb703;" onclick="setTheme('#ffb703', '#fb8500')"></div>
+        <div class="theme-dot" style="background: #ff2a5f;" onclick="setTheme('#ff2a5f', '#ff7e40')"></div>
+        <div class="theme-dot" style="background: #00b4d8;" onclick="setTheme('#00b4d8', '#0077b6')"></div>
+        <div class="theme-dot" style="background: #7cb518;" onclick="setTheme('#7cb518', '#5c8a0c')"></div>
+    </div>
+</div>
+
 <div class="layout-container">
-    
-    <!-- CỘT 1: LỊCH & LỊCH SỬ -->
+    <!-- CỘT 1: LỊCH & BIỂU ĐỒ -->
     <div class="col-left">
-        <div class="calendar-card">
+        <div class="panel-card">
             <div class="calendar-header">
                 <button class="calendar-btn" onclick="changeMonth(-1)">❮</button>
-                <span id="month-year-display">Tháng 9, 2026</span>
+                <span id="month-year-display">...</span>
                 <button class="calendar-btn" onclick="changeMonth(1)">❯</button>
             </div>
-            <div class="calendar-grid" id="calendar-grid">
-                <!-- Javascript sẽ tự tạo lịch vào đây -->
-            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
         </div>
 
-        <h3 style="font-size: 16px; color: var(--text-muted); margin-top: 10px;">Lịch sử ghi nhận</h3>
-        <div class="history-list" id="history-box"></div>
+        <div class="panel-card">
+            <h3 style="font-size: 16px; margin-bottom: 15px;">Phân tích chi tiêu tháng</h3>
+            <div class="chart-container">
+                <canvas id="expenseChart"></canvas>
+            </div>
+        </div>
     </div>
 
-    <!-- CỘT 2: LOCKET & NHẬP TIỀN -->
+    <!-- CỘT 2: LOCKET & GHI NHẬN -->
     <div class="col-right">
-        
-        <!-- Vùng up ảnh Locket -->
         <div class="locket-card" id="image-box" onclick="document.getElementById('photo-input').click()">
             <div class="locket-placeholder" id="placeholder">
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 14H8c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h1.5l1.2-1.5h2.6l1.2 1.5H16c1.1 0 2 .9 2 2v5c0 1.1-.9 2-2 2z" opacity=".3"/><path d="M4 12c0 4.41 3.59 8 8 8s8-3.59 8-8-3.59-8-8-8-8 3.59-8 8zm12.5 4H8c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h1.5l1.2-1.5h2.6l1.2 1.5H16c1.1 0 2 .9 2 2v5c0 1.1-.9 2-2 2zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
@@ -219,12 +192,10 @@
         </div>
         <input type="file" id="photo-input" accept="image/*" capture="environment">
 
-        <!-- Nhập số tiền tùy ý -->
         <div class="input-group">
             <input type="number" id="custom-amount" class="amount-input" placeholder="Nhập số tiền (đ)...">
         </div>
 
-        <!-- Phím bấm nhanh cộng dồn -->
         <div class="quick-add">
             <button class="btn-chip" onclick="addMoney(15000)">+15k</button>
             <button class="btn-chip" onclick="addMoney(35000)">+35k</button>
@@ -232,84 +203,168 @@
             <button class="btn-chip" onclick="resetMoney()" style="background-color: #555;">Xóa</button>
         </div>
 
-        <!-- Danh mục -->
         <div class="quick-add" id="category-list">
             <button class="cat-btn active" onclick="selectCat(this, 'Cà phê')">☕ Cà phê</button>
             <button class="cat-btn" onclick="selectCat(this, 'Bánh mì')">🥖 Bánh mì</button>
             <button class="cat-btn" onclick="selectCat(this, 'Phở/Bún')">🍜 Phở/Bún</button>
-            <button class="cat-btn" onclick="selectCat(this, 'Ăn vặt')">🍟 Ăn vặt</button>
+            <button class="cat-btn" onclick="selectCat(this, 'Nạp game')">🎮 Nạp game</button>
+            <button class="cat-btn" onclick="selectCat(this, 'Khác')">🛒 Khác</button>
         </div>
 
-        <!-- Nút Ghi nhận -->
-        <button class="submit-btn" onclick="submitRecord()">Ghi nhận ngay 🚀</button>
-
+        <button class="submit-btn" onclick="submitRecord()">Ghi nhận 🚀</button>
     </div>
-
 </div>
 
 <script>
+    // --- DỮ LIỆU ---
+    let initialBalance = 0;
+    let totalSpent = 0;
+    let records = {}; // Lưu trữ: { 'YYYY-MM-DD': [{ amount, cat, img }] }
+    
     let selectedCat = 'Cà phê';
     let currentImage = '';
-    
-    // --- XỬ LÝ LỊCH ---
     let currentDate = new Date();
-    let selectedDate = new Date(); // Ngày đang được chọn để ghi nhận
+    let selectedDate = new Date();
+    let expenseChartInstance = null;
 
+    function formatMoney(num) {
+        return num.toLocaleString('vi-VN') + ' đ';
+    }
+
+    // --- XỬ LÝ THEME TÙY CHỈNH ---
+    function setTheme(color1, color2) {
+        document.documentElement.style.setProperty('--primary', color1);
+        document.documentElement.style.setProperty('--primary-gradient', `linear-gradient(135deg, ${color1}, ${color2})`);
+        updateChart(); // Đổi màu biểu đồ theo theme
+    }
+
+    // --- XỬ LÝ TÀI CHÍNH ---
+    function setInitialBalance() {
+        let input = prompt("Nhập tổng số tiền ban đầu của bạn (VNĐ):", initialBalance);
+        if (input !== null && !isNaN(input) && input.trim() !== "") {
+            initialBalance = parseInt(input);
+            updateBalanceDisplay();
+        }
+    }
+
+    function updateBalanceDisplay() {
+        let currentBalance = initialBalance - totalSpent;
+        document.getElementById('balance-display').innerText = formatMoney(currentBalance);
+    }
+
+    function getFormattedDateKey(dateObj) {
+        return `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    }
+
+    // --- XỬ LÝ LỊCH CÓ ẢNH ---
     function renderCalendar() {
         const grid = document.getElementById('calendar-grid');
-        grid.innerHTML = ''; // Xóa lịch cũ
+        grid.innerHTML = ''; 
         
         const month = currentDate.getMonth();
         const year = currentDate.getFullYear();
         document.getElementById('month-year-display').innerText = `Tháng ${month + 1}, ${year}`;
 
-        // Header các ngày trong tuần
         const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
         days.forEach(d => {
             let el = document.createElement('div');
-            el.className = 'day-name';
-            el.innerText = d;
+            el.className = 'day-name'; el.innerText = d;
             grid.appendChild(el);
         });
 
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        // Ô trống đầu tháng
         for(let i = 0; i < firstDay; i++) {
-            let empty = document.createElement('div');
-            grid.appendChild(empty);
+            grid.appendChild(document.createElement('div'));
         }
 
-        // Tạo các ngày
         for(let i = 1; i <= daysInMonth; i++) {
             let cell = document.createElement('div');
             cell.className = 'day-cell';
-            cell.innerText = i;
             
-            // Highlight ngày được chọn
+            let dateKey = `${year}-${String(month+1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            let dayText = document.createElement('span');
+            dayText.innerText = i;
+            cell.appendChild(dayText);
+            
+            // Nếu ngày này có dữ liệu và có ảnh, hiển thị thumbnail nhỏ
+            if (records[dateKey] && records[dateKey].length > 0) {
+                let imgRecord = records[dateKey].find(r => r.img !== '');
+                if (imgRecord) {
+                    let thumb = document.createElement('div');
+                    thumb.className = 'day-thumb';
+                    thumb.style.backgroundImage = `url(${imgRecord.img})`;
+                    cell.appendChild(thumb);
+                }
+            }
+
             if (i === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear()) {
                 cell.classList.add('active');
             }
 
-            // Click để đổi ngày ghi nhận
             cell.onclick = () => {
                 selectedDate = new Date(year, month, i);
                 renderCalendar();
             };
             grid.appendChild(cell);
         }
+        updateChart();
     }
 
     function changeMonth(step) {
         currentDate.setMonth(currentDate.getMonth() + step);
         renderCalendar();
     }
-    
-    // Khởi tạo lịch lúc mở app
-    renderCalendar();
 
-    // --- XỬ LÝ ẢNH & TIỀN ---
+    // --- XỬ LÝ BIỂU ĐỒ (CHART.JS) ---
+    function updateChart() {
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        const month = currentDate.getMonth();
+        const year = currentDate.getFullYear();
+        
+        // Tính tổng tiền theo từng danh mục trong tháng hiện tại
+        let categoryTotals = {};
+        for (let key in records) {
+            let recordDate = new Date(key);
+            if (recordDate.getMonth() === month && recordDate.getFullYear() === year) {
+                records[key].forEach(item => {
+                    categoryTotals[item.cat] = (categoryTotals[item.cat] || 0) + item.amount;
+                });
+            }
+        }
+
+        const labels = Object.keys(categoryTotals);
+        const data = Object.values(categoryTotals);
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ffb703';
+
+        if (expenseChartInstance) {
+            expenseChartInstance.destroy();
+        }
+
+        expenseChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels.length > 0 ? labels : ['Chưa có dữ liệu'],
+                datasets: [{
+                    data: data.length > 0 ? data : [1],
+                    backgroundColor: data.length > 0 ? 
+                        [primaryColor, '#ff2a5f', '#00b4d8', '#7cb518', '#9d4edd'] : 
+                        ['#333'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#fff', font: {family: '-apple-system'} } }
+                }
+            }
+        });
+    }
+
+    // --- ẢNH VÀ NHẬP TIỀN ---
     document.getElementById('photo-input').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -326,39 +381,16 @@
     });
 
     const amountInput = document.getElementById('custom-amount');
-
     function addMoney(amount) {
         let currentVal = parseInt(amountInput.value) || 0;
         amountInput.value = currentVal + amount;
-        playPopSound();
     }
-
-    function resetMoney() {
-        amountInput.value = '';
-    }
+    function resetMoney() { amountInput.value = ''; }
 
     function selectCat(element, catName) {
         document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
         element.classList.add('active');
         selectedCat = catName;
-    }
-
-    function playPopSound() {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioCtx = new AudioContext();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
-            gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.1);
-        } catch (e) {}
     }
 
     function submitRecord() {
@@ -368,39 +400,35 @@
             return;
         }
 
-        // Định dạng ngày hiển thị (VD: 18/09/2026)
-        let dateStr = selectedDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        // Lưu vào cấu trúc dữ liệu
+        let dateKey = getFormattedDateKey(selectedDate);
+        if (!records[dateKey]) records[dateKey] = [];
+        records[dateKey].push({
+            amount: amount,
+            cat: selectedCat,
+            img: currentImage
+        });
 
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#ff2a5f', '#ff7e40', '#ffffff'] });
-        playPopSound();
+        // Trừ tiền tổng
+        totalSpent += amount;
+        updateBalanceDisplay();
 
-        // Thêm vào UI lịch sử
-        const historyBox = document.getElementById('history-box');
-        const item = document.createElement('div');
-        item.className = 'history-item';
-        
-        const imgStyle = currentImage ? `background-image: url(${currentImage});` : '';
-        
-        item.innerHTML = `
-            <div class="history-info">
-                <div class="history-thumb" style="${imgStyle}"></div>
-                <div>
-                    <div class="history-cat">${selectedCat}</div>
-                    <div class="history-date">Ghi cho ngày: ${dateStr}</div>
-                </div>
-            </div>
-            <div class="history-amount">-${amount.toLocaleString('vi-VN')} đ</div>
-        `;
-        historyBox.prepend(item);
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }});
 
-        // Reset form nhưng giữ nguyên ngày trên lịch
+        // Cập nhật lại UI
         resetMoney();
         currentImage = '';
         const box = document.getElementById('image-box');
         box.style.backgroundImage = 'none';
         box.style.border = '2px dashed #444';
         document.getElementById('placeholder').style.display = 'flex';
+        
+        renderCalendar(); // Cập nhật ảnh lên lịch và biểu đồ
     }
+
+    // Khởi tạo
+    updateBalanceDisplay();
+    renderCalendar();
 </script>
 </body>
 </html>
