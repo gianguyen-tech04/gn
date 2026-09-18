@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LocketMoney</title>
+    <title>LocketMoney - Lịch & Ghi nhận</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
@@ -27,242 +27,289 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            padding: 20px;
+            padding: 15px;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            justify-content: center;
             min-height: 100vh;
         }
 
-        .container {
+        /* Bố cục chia 2 cột */
+        .layout-container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
             width: 100%;
-            max-width: 400px;
+            max-width: 900px;
+            align-items: flex-start;
+        }
+
+        .col-left, .col-right {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 20px;
+            width: 100%;
         }
 
-        /* Header */
-        .header {
+        /* --- CỘT TRÁI: LỊCH --- */
+        .calendar-card {
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .calendar-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
             text-align: center;
-            margin-bottom: 10px;
         }
-        .header h1 {
-            font-size: 24px;
-            font-weight: 800;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .total-spent {
-            font-size: 16px;
+        .day-name {
+            font-size: 12px;
             color: var(--text-muted);
-            margin-top: 5px;
+            font-weight: 600;
+            margin-bottom: 5px;
         }
+        .day-cell {
+            padding: 8px 0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .day-cell:hover { background-color: #333; }
+        .day-cell.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 10px rgba(255, 42, 95, 0.4);
+        }
+        
+        /* Cột Lịch Sử */
+        .history-list { display: flex; flex-direction: column; gap: 10px; }
+        .history-item {
+            display: flex; align-items: center; justify-content: space-between;
+            background-color: var(--card-bg); padding: 12px; border-radius: 16px;
+        }
+        .history-info { display: flex; align-items: center; gap: 12px; }
+        .history-thumb {
+            width: 45px; height: 45px; border-radius: 12px;
+            background-size: cover; background-position: center; background-color: #333;
+        }
+        .history-cat { font-size: 14px; font-weight: 700; }
+        .history-date { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+        .history-amount { font-size: 15px; font-weight: 800; color: var(--primary); }
 
-        /* Locket Image Area */
+        /* --- CỘT PHẢI: LOCKET GHI NHẬN --- */
         .locket-card {
             width: 100%;
             aspect-ratio: 1 / 1;
             background-color: var(--card-bg);
             border-radius: var(--squircle-radius);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-            border: 2px dashed #333;
-            background-size: cover;
-            background-position: center;
-            cursor: pointer;
-            transition: transform 0.2s;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+            position: relative; overflow: hidden;
+            border: 2px dashed #444;
+            background-size: cover; background-position: center;
+            cursor: pointer; transition: transform 0.2s;
         }
-        .locket-card:active {
-            transform: scale(0.97);
-        }
-        .locket-placeholder {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            color: var(--text-muted);
-        }
-        .locket-placeholder svg {
-            width: 48px;
-            height: 48px;
-            fill: var(--text-muted);
-        }
-        #photo-input {
-            display: none;
-        }
+        .locket-card:active { transform: scale(0.97); }
+        .locket-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-muted); }
+        .locket-placeholder svg { width: 40px; height: 40px; fill: var(--text-muted); }
+        #photo-input { display: none; }
 
-        /* Amount & Quick Add */
-        .amount-display {
-            font-size: 42px;
+        /* Khung nhập số tiền tùy ý */
+        .input-group {
+            position: relative;
+            width: 100%;
+        }
+        .amount-input {
+            width: 100%;
+            background-color: var(--card-bg);
+            border: 2px solid transparent;
+            color: var(--text-main);
+            font-size: 28px;
             font-weight: 800;
             text-align: center;
-            margin: 10px 0;
-            transition: all 0.2s ease;
-        }
-        .quick-add {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-        .btn-chip {
-            background-color: var(--card-bg);
-            color: var(--text-main);
-            border: none;
-            padding: 10px 16px;
+            padding: 15px;
             border-radius: 20px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-chip:active {
-            background-color: #333;
-            transform: scale(0.95);
-        }
-
-        /* Categories */
-        .categories {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .cat-btn {
-            background-color: transparent;
-            border: 2px solid #333;
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            cursor: pointer;
-            font-weight: 600;
+            outline: none;
             transition: all 0.2s;
         }
+        .amount-input:focus { border-color: var(--primary); }
+        .amount-input::placeholder { color: #555; }
+
+        /* Nút tính nhanh & Danh mục */
+        .quick-add { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .btn-chip, .cat-btn {
+            background-color: var(--card-bg); color: var(--text-muted);
+            border: 2px solid transparent; padding: 10px 14px;
+            border-radius: 16px; font-size: 14px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-chip { background-color: #333; color: white; border: none; }
+        .btn-chip:active { transform: scale(0.95); }
+        
         .cat-btn.active {
             border-color: var(--primary);
             color: var(--primary);
             background-color: rgba(255, 42, 95, 0.1);
         }
 
-        /* Submit Button */
+        /* Nút Ghi nhận */
         .submit-btn {
-            background: var(--primary-gradient);
-            color: white;
-            border: none;
-            width: 100%;
-            padding: 18px;
-            border-radius: 24px;
-            font-size: 18px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 8px 20px rgba(255, 42, 95, 0.3);
-            transition: transform 0.2s, box-shadow 0.2s;
+            background: var(--primary-gradient); color: white; border: none;
+            width: 100%; padding: 18px; border-radius: 24px;
+            font-size: 18px; font-weight: 800; cursor: pointer;
+            box-shadow: 0 8px 20px rgba(255, 42, 95, 0.3); transition: transform 0.2s;
         }
-        .submit-btn:active {
-            transform: scale(0.95);
-            box-shadow: 0 4px 10px rgba(255, 42, 95, 0.2);
-        }
+        .submit-btn:active { transform: scale(0.95); }
 
-        /* History List */
-        .history-list {
-            margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .history-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background-color: var(--card-bg);
-            padding: 12px 16px;
-            border-radius: 16px;
-        }
-        .history-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .history-thumb {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background-size: cover;
-            background-position: center;
-            background-color: #333;
-        }
-        .history-cat {
-            font-size: 16px;
-            font-weight: 600;
-        }
-        .history-amount {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--primary);
+        /* Responsive cho điện thoại (xếp chồng lên nhau) */
+        @media (max-width: 768px) {
+            .layout-container { flex-direction: column; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <h1>LocketMoney</h1>
-        <div class="total-spent" id="total-text">Hôm nay: 0 đ</div>
-    </div>
-
-    <!-- Vùng up ảnh kiểu Locket -->
-    <div class="locket-card" id="image-box" onclick="document.getElementById('photo-input').click()">
-        <div class="locket-placeholder" id="placeholder">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 14H8c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h1.5l1.2-1.5h2.6l1.2 1.5H16c1.1 0 2 .9 2 2v5c0 1.1-.9 2-2 2z" opacity=".3"/><path d="M4 12c0 4.41 3.59 8 8 8s8-3.59 8-8-3.59-8-8-8-8 3.59-8 8zm12.5 4H8c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h1.5l1.2-1.5h2.6l1.2 1.5H16c1.1 0 2 .9 2 2v5c0 1.1-.9 2-2 2zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-            <span style="font-weight: 600;">Chạm để chụp ảnh</span>
+<div class="layout-container">
+    
+    <!-- CỘT 1: LỊCH & LỊCH SỬ -->
+    <div class="col-left">
+        <div class="calendar-card">
+            <div class="calendar-header">
+                <button class="calendar-btn" onclick="changeMonth(-1)">❮</button>
+                <span id="month-year-display">Tháng 9, 2026</span>
+                <button class="calendar-btn" onclick="changeMonth(1)">❯</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid">
+                <!-- Javascript sẽ tự tạo lịch vào đây -->
+            </div>
         </div>
-    </div>
-    <input type="file" id="photo-input" accept="image/*" capture="environment">
 
-    <!-- Hiển thị số tiền -->
-    <div class="amount-display" id="amount-display">0 đ</div>
-
-    <!-- Phím bấm nhanh -->
-    <div class="quick-add">
-        <button class="btn-chip" onclick="addMoney(15000)">+15k</button>
-        <button class="btn-chip" onclick="addMoney(35000)">+35k</button>
-        <button class="btn-chip" onclick="addMoney(50000)">+50k</button>
-        <button class="btn-chip" onclick="resetMoney()" style="background-color: #333;">Xóa</button>
+        <h3 style="font-size: 16px; color: var(--text-muted); margin-top: 10px;">Lịch sử ghi nhận</h3>
+        <div class="history-list" id="history-box"></div>
     </div>
 
-    <!-- Danh mục -->
-    <div class="categories" id="category-list">
-        <button class="cat-btn active" onclick="selectCat(this, 'Cà phê')">☕ Cà phê</button>
-        <button class="cat-btn" onclick="selectCat(this, 'Bánh mì')">🥖 Bánh mì</button>
-        <button class="cat-btn" onclick="selectCat(this, 'Phở/Bún')">🍜 Phở/Bún</button>
-        <button class="cat-btn" onclick="selectCat(this, 'Ăn vặt')">🍟 Ăn vặt</button>
+    <!-- CỘT 2: LOCKET & NHẬP TIỀN -->
+    <div class="col-right">
+        
+        <!-- Vùng up ảnh Locket -->
+        <div class="locket-card" id="image-box" onclick="document.getElementById('photo-input').click()">
+            <div class="locket-placeholder" id="placeholder">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 14H8c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h1.5l1.2-1.5h2.6l1.2 1.5H16c1.1 0 2 .9 2 2v5c0 1.1-.9 2-2 2z" opacity=".3"/><path d="M4 12c0 4.41 3.59 8 8 8s8-3.59 8-8-3.59-8-8-8-8 3.59-8 8zm12.5 4H8c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h1.5l1.2-1.5h2.6l1.2 1.5H16c1.1 0 2 .9 2 2v5c0 1.1-.9 2-2 2zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+                <span style="font-weight: 600;">Chạm để chụp ảnh</span>
+            </div>
+        </div>
+        <input type="file" id="photo-input" accept="image/*" capture="environment">
+
+        <!-- Nhập số tiền tùy ý -->
+        <div class="input-group">
+            <input type="number" id="custom-amount" class="amount-input" placeholder="Nhập số tiền (đ)...">
+        </div>
+
+        <!-- Phím bấm nhanh cộng dồn -->
+        <div class="quick-add">
+            <button class="btn-chip" onclick="addMoney(15000)">+15k</button>
+            <button class="btn-chip" onclick="addMoney(35000)">+35k</button>
+            <button class="btn-chip" onclick="addMoney(50000)">+50k</button>
+            <button class="btn-chip" onclick="resetMoney()" style="background-color: #555;">Xóa</button>
+        </div>
+
+        <!-- Danh mục -->
+        <div class="quick-add" id="category-list">
+            <button class="cat-btn active" onclick="selectCat(this, 'Cà phê')">☕ Cà phê</button>
+            <button class="cat-btn" onclick="selectCat(this, 'Bánh mì')">🥖 Bánh mì</button>
+            <button class="cat-btn" onclick="selectCat(this, 'Phở/Bún')">🍜 Phở/Bún</button>
+            <button class="cat-btn" onclick="selectCat(this, 'Ăn vặt')">🍟 Ăn vặt</button>
+        </div>
+
+        <!-- Nút Ghi nhận -->
+        <button class="submit-btn" onclick="submitRecord()">Ghi nhận ngay 🚀</button>
+
     </div>
 
-    <!-- Nút Ghi nhận -->
-    <button class="submit-btn" onclick="submitRecord()">Ghi nhận ngay 🚀</button>
-
-    <!-- Danh sách Lịch sử -->
-    <div class="history-list" id="history-box"></div>
 </div>
 
 <script>
-    let currentAmount = 0;
     let selectedCat = 'Cà phê';
     let currentImage = '';
-    let totalToday = 0;
+    
+    // --- XỬ LÝ LỊCH ---
+    let currentDate = new Date();
+    let selectedDate = new Date(); // Ngày đang được chọn để ghi nhận
 
-    // Định dạng tiền tệ VNĐ
-    function formatMoney(num) {
-        return num.toLocaleString('vi-VN') + ' đ';
+    function renderCalendar() {
+        const grid = document.getElementById('calendar-grid');
+        grid.innerHTML = ''; // Xóa lịch cũ
+        
+        const month = currentDate.getMonth();
+        const year = currentDate.getFullYear();
+        document.getElementById('month-year-display').innerText = `Tháng ${month + 1}, ${year}`;
+
+        // Header các ngày trong tuần
+        const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+        days.forEach(d => {
+            let el = document.createElement('div');
+            el.className = 'day-name';
+            el.innerText = d;
+            grid.appendChild(el);
+        });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        // Ô trống đầu tháng
+        for(let i = 0; i < firstDay; i++) {
+            let empty = document.createElement('div');
+            grid.appendChild(empty);
+        }
+
+        // Tạo các ngày
+        for(let i = 1; i <= daysInMonth; i++) {
+            let cell = document.createElement('div');
+            cell.className = 'day-cell';
+            cell.innerText = i;
+            
+            // Highlight ngày được chọn
+            if (i === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear()) {
+                cell.classList.add('active');
+            }
+
+            // Click để đổi ngày ghi nhận
+            cell.onclick = () => {
+                selectedDate = new Date(year, month, i);
+                renderCalendar();
+            };
+            grid.appendChild(cell);
+        }
     }
 
-    // Xử lý up ảnh
+    function changeMonth(step) {
+        currentDate.setMonth(currentDate.getMonth() + step);
+        renderCalendar();
+    }
+    
+    // Khởi tạo lịch lúc mở app
+    renderCalendar();
+
+    // --- XỬ LÝ ẢNH & TIỀN ---
     document.getElementById('photo-input').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -278,72 +325,56 @@
         }
     });
 
-    // Thêm tiền nhanh
+    const amountInput = document.getElementById('custom-amount');
+
     function addMoney(amount) {
-        currentAmount += amount;
-        document.getElementById('amount-display').innerText = formatMoney(currentAmount);
+        let currentVal = parseInt(amountInput.value) || 0;
+        amountInput.value = currentVal + amount;
         playPopSound();
     }
 
-    // Reset tiền
     function resetMoney() {
-        currentAmount = 0;
-        document.getElementById('amount-display').innerText = formatMoney(currentAmount);
+        amountInput.value = '';
     }
 
-    // Chọn danh mục
     function selectCat(element, catName) {
         document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
         element.classList.add('active');
         selectedCat = catName;
     }
 
-    // Tạo âm thanh Pop mượt mà bằng Web Audio API
     function playPopSound() {
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             const audioCtx = new AudioContext();
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            
             oscillator.type = 'sine';
             oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
-            
             gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.1);
-        } catch (e) {
-            console.log("Audio not supported");
-        }
+        } catch (e) {}
     }
 
-    // Xử lý khi bấm nút "Ghi nhận ngay"
     function submitRecord() {
-        if (currentAmount === 0) {
-            alert("Vui lòng nhập số tiền!");
+        let amount = parseInt(amountInput.value);
+        if (!amount || amount <= 0) {
+            alert("Vui lòng nhập số tiền hợp lệ!");
             return;
         }
 
-        // Cập nhật tổng
-        totalToday += currentAmount;
-        document.getElementById('total-text').innerText = 'Hôm nay: ' + formatMoney(totalToday);
+        // Định dạng ngày hiển thị (VD: 18/09/2026)
+        let dateStr = selectedDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-        // Hiệu ứng pháo hoa Confetti
-        confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#ff2a5f', '#ff7e40', '#ffffff']
-        });
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#ff2a5f', '#ff7e40', '#ffffff'] });
         playPopSound();
 
-        // Thêm vào lịch sử
+        // Thêm vào UI lịch sử
         const historyBox = document.getElementById('history-box');
         const item = document.createElement('div');
         item.className = 'history-item';
@@ -353,18 +384,21 @@
         item.innerHTML = `
             <div class="history-info">
                 <div class="history-thumb" style="${imgStyle}"></div>
-                <div class="history-cat">${selectedCat}</div>
+                <div>
+                    <div class="history-cat">${selectedCat}</div>
+                    <div class="history-date">Ghi cho ngày: ${dateStr}</div>
+                </div>
             </div>
-            <div class="history-amount">-${formatMoney(currentAmount)}</div>
+            <div class="history-amount">-${amount.toLocaleString('vi-VN')} đ</div>
         `;
         historyBox.prepend(item);
 
-        // Reset form
+        // Reset form nhưng giữ nguyên ngày trên lịch
         resetMoney();
         currentImage = '';
         const box = document.getElementById('image-box');
         box.style.backgroundImage = 'none';
-        box.style.border = '2px dashed #333';
+        box.style.border = '2px dashed #444';
         document.getElementById('placeholder').style.display = 'flex';
     }
 </script>
