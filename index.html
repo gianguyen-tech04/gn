@@ -3,502 +3,341 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LocketMoney - Photo Journal</title>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <title>LocketMoney - Visual Diary</title>
     <style>
         :root {
-            /* Warm Dark Theme */
-            --bg-color: #0c0c0e;
-            --card-bg: #1a1a1c;
-            --text-main: #ffffff;
-            --text-muted: #8e8e93;
-            --accent: #ffb703; /* Vàng Locket */
-            --accent-gradient: linear-gradient(135deg, #ffb703, #fb8500);
-            --success: #32d74b;
-            --danger: #ff453a;
-            --spacing: 16px;
-            --squircle: 28px;
-            --nav-height: 80px;
+            --bg: #000000;
+            --surface: #1a1a1a;
+            --surface-light: #2c2c2e;
+            --text: #ffffff;
+            --text-dim: #8e8e93;
+            --accent: #ffb703;
+            --radius-huge: 44px;
+            --radius-pill: 30px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        body { 
-            background-color: var(--bg-color); 
-            color: var(--text-main); 
-            overflow: hidden; /* Prevent body scroll, handle scroll in screens */
-            width: 100vw; height: 100vh;
-        }
+        body { background-color: var(--bg); color: var(--text); overflow: hidden; height: 100vh; width: 100vw; display: flex; flex-direction: column; }
 
-        /* --- LIQUID GLASS SYSTEM --- */
-        .liquid-glass {
-            background: rgba(30, 30, 32, 0.65);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        }
+        /* --- SCREEN CHÍNH (CAMERA / FEED) --- */
+        .main-screen { flex: 1; display: flex; flex-direction: column; padding: 16px; padding-top: max(16px, env(safe-area-inset-top)); position: relative; z-index: 10; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+        .main-screen.slide-left { transform: translateX(-100vw); }
 
-        /* --- SCREEN SYSTEM --- */
-        .screen {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            padding: var(--spacing); padding-bottom: calc(var(--nav-height) + 30px);
-            overflow-y: auto; overflow-x: hidden;
-            opacity: 0; pointer-events: none; transform: translateX(20px);
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        .screen.active { opacity: 1; pointer-events: auto; transform: translateX(0); }
-        .screen.active-camera { z-index: 50; padding: 0; overflow: hidden; background: #000; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .screen.active-camera.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+        /* Top Header */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-light); background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'); background-size: cover; border: 1px solid #333; }
+        .balance-pill { background-color: var(--surface); padding: 8px 16px; border-radius: var(--radius-pill); font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .balance-pill::after { content: '⌄'; position: relative; top: -2px; color: var(--text-dim); }
+        .icon-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; }
 
-        /* Header */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; margin-top: 10px; }
-        .header-title { font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
-        .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-gradient); display: flex; justify-content: center; align-items: center; font-weight: bold; color: #000; }
-        .btn-settings { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; cursor: pointer; }
-
-        /* --- SCREEN 1: FEED (PHOTO FIRST) --- */
-        .feed-list { display: flex; flex-direction: column; gap: 24px; }
-        .feed-date { font-size: 14px; font-weight: 700; color: var(--text-muted); margin-bottom: -10px; text-transform: uppercase; letter-spacing: 1px; }
+        /* Big Squircle Photo */
+        .photo-container { flex: 1; width: 100%; max-height: 60vh; border-radius: var(--radius-huge); background-color: var(--surface); position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; background-size: cover; background-position: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .photo-placeholder { color: var(--text-dim); font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         
-        .photo-card {
-            width: 100%; aspect-ratio: 4/5; border-radius: var(--squircle);
-            background-color: #222; background-size: cover; background-position: center;
-            position: relative; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-        }
-        .photo-overlay {
-            position: absolute; bottom: 0; left: 0; right: 0; padding: 30px 20px 20px;
-            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0) 100%);
-            display: flex; justify-content: space-between; align-items: flex-end;
-        }
-        .feed-info h3 { font-size: 20px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;}
-        .feed-meta { font-size: 14px; color: rgba(255,255,255,0.7); }
-        .feed-amount { font-size: 24px; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-        .feed-amount.income { color: var(--success); }
+        .photo-overlay-text { position: absolute; bottom: 30px; left: 20px; right: 20px; text-align: center; font-size: 18px; font-weight: 600; text-shadow: 0 2px 10px rgba(0,0,0,0.8); z-index: 2; }
+        .photo-user-tag { position: absolute; bottom: -40px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-dim); }
+        .photo-user-tag img { width: 20px; height: 20px; border-radius: 50%; }
 
-        .text-card {
-            background-color: var(--card-bg); border-radius: 20px; padding: 16px 20px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        /* Input Bar (Send message style) */
+        .input-bar-container { margin-top: 30px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .input-bar { background-color: var(--surface); border-radius: var(--radius-pill); padding: 4px 6px 4px 20px; display: flex; justify-content: space-between; align-items: center; height: 52px; border: 1px solid transparent; transition: border 0.2s; }
+        .input-bar:focus-within { border-color: var(--surface-light); }
+        .input-field { background: transparent; border: none; color: white; font-size: 16px; font-weight: 500; width: 100%; outline: none; }
+        .input-field::placeholder { color: #666; font-weight: 500; }
+        .quick-emojis { display: flex; gap: 4px; }
+        .emoji-btn { width: 40px; height: 40px; border-radius: 50%; background: transparent; border: none; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background 0.2s; }
+        .emoji-btn:active { background: var(--surface-light); }
 
-        /* --- SCREEN 2: MONEY OVERVIEW --- */
-        .widget { background-color: var(--card-bg); border-radius: var(--squircle); padding: 24px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-        .w-main { background: linear-gradient(145deg, #1e1e20, #141415); border: 1px solid rgba(255,255,255,0.05); }
-        .widget-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        .widget-value { font-size: 38px; font-weight: 800; letter-spacing: -1px; color: var(--accent); margin: 4px 0; }
-        .widget-sub { font-size: 15px; font-weight: 500; color: var(--text-muted); }
+        /* Bottom Controls (Grid, Shutter, Share) */
+        .bottom-controls { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 20px; }
+        .control-icon { width: 44px; height: 44px; display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 4px; cursor: pointer; opacity: 0.8; transition: opacity 0.2s; }
+        .control-icon:active { opacity: 0.4; }
+        .grid-dot { width: 8px; height: 8px; background-color: white; border-radius: 2px; }
         
-        .row-between { display: flex; justify-content: space-between; align-items: center; }
-        .col-gap { display: flex; flex-direction: column; gap: 4px; }
-
-        .progress-track { width: 100%; height: 10px; background-color: rgba(255,255,255,0.08); border-radius: 5px; overflow: hidden; margin-top: 8px; }
-        .progress-fill { height: 100%; background: var(--accent-gradient); border-radius: 5px; transition: width 0.4s ease; }
-        .progress-fill.danger { background: var(--danger); }
-
-        /* --- SCREEN 3: CAMERA --- */
-        #camera-view { width: 100%; height: 100%; object-fit: cover; background: #000; }
-        .cam-controls-top { position: absolute; top: 40px; left: 20px; right: 20px; display: flex; justify-content: space-between; z-index: 60; }
-        .cam-btn { width: 44px; height: 44px; border-radius: 22px; display: flex; justify-content: center; align-items: center; font-size: 20px; color: white; border: none; cursor: pointer; }
-        
-        .cam-controls-bottom { position: absolute; bottom: 50px; left: 30px; right: 30px; display: flex; justify-content: space-between; align-items: center; z-index: 60; }
-        .shutter-btn { width: 76px; height: 76px; border-radius: 38px; border: 4px solid white; background: rgba(255,255,255,0.3); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.1s; }
+        .shutter-btn { width: 72px; height: 72px; border-radius: 36px; border: 5px solid var(--accent); background: transparent; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.1s; }
         .shutter-btn:active { transform: scale(0.9); }
-        .shutter-inner { width: 60px; height: 60px; border-radius: 30px; background: white; }
-        .flip-btn, .gallery-btn { width: 50px; height: 50px; border-radius: 25px; display: flex; justify-content: center; align-items: center; font-size: 24px; color: white; cursor: pointer; border: none; }
+        
+        .share-icon { width: 44px; height: 44px; display: flex; justify-content: center; align-items: center; font-size: 24px; color: white; cursor: pointer; opacity: 0.8; }
+        .share-icon:active { opacity: 0.4; }
+
         #hidden-file-input { display: none; }
 
-        /* --- POST-CAPTURE LIQUID SHEET --- */
-        .preview-layer { position: absolute; inset: 0; background-size: cover; background-position: center; z-index: 70; opacity: 0; pointer-events: none; transition: opacity 0.3s; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; padding-bottom: 40px; }
-        .preview-layer.active { opacity: 1; pointer-events: auto; }
-        .btn-retake { position: absolute; top: 40px; left: 20px; z-index: 71; }
+        /* --- SCREEN LỊCH SỬ (CHAT/FRIENDS STYLE) --- */
+        .history-screen { position: absolute; top: 0; left: 100vw; width: 100vw; height: 100vh; background: var(--bg); padding: 16px; padding-top: max(16px, env(safe-area-inset-top)); z-index: 20; display: flex; flex-direction: column; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+        .history-screen.active { transform: translateX(-100vw); }
         
-        .liquid-sheet { border-radius: 32px; padding: 24px; display: flex; flex-direction: column; gap: 20px; transform: translateY(50px); opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .preview-layer.active .liquid-sheet { transform: translateY(0); opacity: 1; }
+        .history-header { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; }
+        .back-btn { font-size: 24px; color: white; cursor: pointer; padding: 8px; }
+        .history-title { font-size: 18px; font-weight: 700; flex: 1; text-align: center; margin-right: 40px; }
 
-        .smart-input-wrapper { display: flex; flex-direction: column; gap: 8px; }
-        .smart-input { background: transparent; border: none; color: #fff; font-size: 36px; font-weight: 800; width: 100%; outline: none; text-align: center; }
-        .smart-input::placeholder { color: rgba(255,255,255,0.3); font-weight: 700; }
-        .smart-hint { font-size: 15px; color: rgba(255,255,255,0.9); text-align: center; font-weight: 500; }
+        .search-bar { background: var(--surface); border-radius: 12px; padding: 12px 16px; display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+        .search-bar input { background: transparent; border: none; color: white; font-size: 15px; width: 100%; outline: none; }
 
-        .btn-save { background: var(--accent-gradient); color: #000; border: none; padding: 18px; border-radius: 24px; font-size: 18px; font-weight: 700; width: 100%; cursor: pointer; transition: transform 0.2s; box-shadow: 0 10px 25px rgba(255, 183, 3, 0.4); }
-        .btn-save:active { transform: scale(0.95); }
-
-        /* --- BOTTOM NAVIGATION (FLOATING LIQUID GLASS) --- */
-        .bottom-nav-container { position: fixed; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; z-index: 40; pointer-events: none; }
-        .bottom-nav { pointer-events: auto; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 100px; }
-        .nav-item { width: 50px; height: 50px; border-radius: 25px; display: flex; justify-content: center; align-items: center; font-size: 22px; color: var(--text-muted); cursor: pointer; transition: all 0.3s; }
-        .nav-item.active { background: rgba(255,255,255,0.15); color: white; }
-        .nav-cam { width: 60px; height: 60px; border-radius: 30px; background: var(--accent-gradient); color: #000; font-size: 26px; box-shadow: 0 8px 20px rgba(255, 183, 3, 0.4); }
-        .nav-cam:active { transform: scale(0.9); }
+        .tx-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 40px; }
+        .tx-item { display: flex; align-items: center; justify-content: space-between; }
+        .tx-left { display: flex; align-items: center; gap: 12px; }
+        .tx-avatar { width: 44px; height: 44px; border-radius: 50%; background-color: var(--surface-light); background-size: cover; background-position: center; border: 2px solid var(--accent); display: flex; justify-content: center; align-items: center; font-size: 20px;}
+        .tx-info { display: flex; flex-direction: column; }
+        .tx-name { font-size: 16px; font-weight: 600; }
+        .tx-time { font-size: 13px; color: var(--text-dim); }
+        .tx-amount { font-size: 16px; font-weight: 700; color: white; }
+        .tx-amount.income { color: var(--success); }
     </style>
 </head>
 <body>
 
-    <!-- SCREEN 1: FEED (Visual Diary) -->
-    <div id="screen-feed" class="screen active">
+    <!-- MÀN HÌNH CHÍNH (FEED / CAMERA) -->
+    <div class="main-screen" id="main-screen">
+        <!-- Header -->
         <div class="header">
-            <div class="header-title"><div class="avatar">LM</div> My Feed</div>
-            <div class="btn-settings" onclick="promptIncome()">⚙️</div>
+            <div class="avatar"></div>
+            <div class="balance-pill" onclick="promptIncome()">
+                <span id="ui-available">0đ</span>
+            </div>
+            <div class="icon-btn" onclick="alert('Tính năng Thống kê đang phát triển!')">📊</div>
         </div>
-        <div class="feed-list" id="ui-feed-list">
-            <!-- Render JS -->
+
+        <!-- Khung ảnh Squircle Khổng lồ -->
+        <div class="photo-container" id="main-photo" onclick="document.getElementById('hidden-file-input').click()">
+            <div class="photo-placeholder" id="photo-placeholder">
+                <span style="font-size: 40px;">📷</span>
+                <span>Chạm để chụp ảnh</span>
+            </div>
+            <div class="photo-overlay-text" id="photo-text"></div>
+        </div>
+        <input type="file" id="hidden-file-input" accept="image/*" capture="environment" onchange="handlePhotoCapture(event)">
+
+        <!-- Thanh nhập tiền phong cách Send Message -->
+        <div class="input-bar-container">
+            <div class="input-bar">
+                <input type="text" id="amount-input" class="input-field" placeholder="Gõ 35k cơm gà..." autocomplete="off">
+                <div class="quick-emojis">
+                    <button class="emoji-btn" onclick="quickAddCategory('🍜')">🍜</button>
+                    <button class="emoji-btn" onclick="quickAddCategory('🧋')">🧋</button>
+                    <button class="emoji-btn" onclick="saveTransaction()" style="color: var(--accent); font-weight: bold; font-size: 24px;">↑</button>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-dim); text-align: center;" id="smart-hint">Sẵn sàng ghi nhận.</div>
+        </div>
+
+        <!-- Cụm phím điều hướng đáy -->
+        <div class="bottom-controls">
+            <!-- Nút History dạng lưới 4 chấm -->
+            <div class="control-icon" style="width: 24px; gap: 2px;" onclick="toggleHistory(true)">
+                <div class="grid-dot"></div><div class="grid-dot"></div>
+                <div class="grid-dot"></div><div class="grid-dot"></div>
+            </div>
+            
+            <!-- Nút Shutter tròn rỗng -->
+            <div class="shutter-btn" onclick="document.getElementById('hidden-file-input').click()"></div>
+            
+            <!-- Nút Action phụ -->
+            <div class="share-icon" onclick="alert('Đã lưu ảnh xuống máy!')">⎋</div>
         </div>
     </div>
 
-    <!-- SCREEN 2: FINANCE OVERVIEW -->
-    <div id="screen-money" class="screen">
-        <div class="header">
-            <div class="header-title">💰 Money</div>
-        </div>
-        
-        <div class="widget w-main">
-            <div class="widget-title">Còn lại</div>
-            <div class="widget-value" id="ui-available">0đ</div>
-            <div class="row-between">
-                <div class="widget-sub" id="ui-daily-allowance">0đ / ngày</div>
-                <div class="widget-sub" style="font-size: 13px;">Tài sản: <span id="ui-total-assets">0đ</span></div>
-            </div>
+    <!-- MÀN HÌNH LỊCH SỬ CHI TIÊU -->
+    <div class="history-screen" id="history-screen">
+        <div class="history-header">
+            <div class="back-btn" onclick="toggleHistory(false)">❮</div>
+            <div class="history-title">Giao dịch của bạn</div>
+            <div style="width: 24px;"></div> <!-- Cân bằng layout -->
         </div>
 
-        <div class="widget">
-            <div class="widget-title">☀️ Hôm nay</div>
-            <div class="row-between">
-                <div class="col-gap">
-                    <span style="font-size: 13px; color: var(--text-muted);">Ngân sách</span>
-                    <span style="font-weight: 700; font-size: 15px;" id="ui-today-budget">0đ</span>
-                </div>
-                <div class="col-gap" style="text-align: right;">
-                    <span style="font-size: 13px; color: var(--text-muted);" id="ui-today-status-label">Đã tiêu</span>
-                    <span style="font-weight: 700; font-size: 15px;" id="ui-today-spent">0đ</span>
-                </div>
-            </div>
-            <div class="progress-track">
-                <div class="progress-fill" id="ui-today-progress" style="width: 0%;"></div>
-            </div>
-            <div class="widget-sub" style="text-align: center; margin-top: 4px; font-size: 13px;">
-                Còn <b id="ui-today-remain">0đ</b>
-            </div>
+        <div class="search-bar">
+            <span>🔍</span>
+            <input type="text" placeholder="Tìm kiếm giao dịch...">
         </div>
 
-        <div class="widget">
-            <div class="widget-title">🎯 Quỹ Khẩn Cấp</div>
-            <div class="widget-value" style="font-size: 28px; color: var(--text-main);" id="ui-fund-balance">0đ</div>
-            <div class="widget-sub" style="font-size: 13px;">Tách biệt hoàn toàn với tiền tiêu dùng.</div>
-        </div>
-    </div>
-
-    <!-- SCREEN 3: CAMERA FULLSCREEN -->
-    <div id="screen-camera" class="screen active-camera">
-        <video id="camera-view" autoplay playsinline></video>
-        
-        <div class="cam-controls-top">
-            <button class="cam-btn liquid-glass" onclick="closeCamera()">✕</button>
-            <button class="cam-btn liquid-glass" id="btn-flash" onclick="toggleFlash()">⚡</button>
-        </div>
-        
-        <div class="cam-controls-bottom">
-            <button class="gallery-btn liquid-glass" onclick="document.getElementById('hidden-file-input').click()">🖼️</button>
-            <div class="shutter-btn" onclick="capturePhoto()">
-                <div class="shutter-inner"></div>
-            </div>
-            <button class="flip-btn liquid-glass" onclick="flipCamera()">🔄</button>
-        </div>
-        <input type="file" id="hidden-file-input" accept="image/*" onchange="handleGallerySelect(event)">
-        
-        <!-- POST-CAPTURE LIQUID SHEET -->
-        <div class="preview-layer" id="preview-layer">
-            <button class="cam-btn liquid-glass btn-retake" onclick="retakePhoto()">✕</button>
-            <div class="liquid-sheet liquid-glass">
-                <div class="smart-input-wrapper">
-                    <input type="text" id="smart-input" class="smart-input" placeholder="35k cơm gà" autocomplete="off" oninput="parseSmartInput()">
-                    <div class="smart-hint" id="smart-hint">Gõ số tiền và ghi chú món đồ...</div>
-                </div>
-                <button class="btn-save" onclick="saveTransaction()">Lưu giao dịch</button>
-            </div>
-        </div>
-        <canvas id="photo-canvas" style="display: none;"></canvas>
-    </div>
-
-    <!-- FLOATING BOTTOM NAVIGATION -->
-    <div class="bottom-nav-container">
-        <div class="bottom-nav liquid-glass">
-            <div class="nav-item active" id="nav-feed" onclick="switchTab('feed')">🏠</div>
-            <div class="nav-item nav-cam" onclick="openCamera()">📷</div>
-            <div class="nav-item" id="nav-money" onclick="switchTab('money')">📊</div>
+        <div class="tx-list" id="ui-tx-list">
+            <!-- Render bằng JS -->
         </div>
     </div>
 
 <script>
-    // --- LƯU TRỮ & DATA MODEL ---
-    let data = JSON.parse(localStorage.getItem('lm_data_v4'));
+    // --- LƯU TRỮ ---
+    let data = JSON.parse(localStorage.getItem('locket_finance_v5'));
     if (!data) {
-        data = { baseIncome: 0, transactions: [], funds: [{ id: 'f1', name: 'Quỹ', balance: 0 }] };
-        localStorage.setItem('lm_data_v4', JSON.stringify(data));
+        data = { baseIncome: 0, transactions: [] };
+        localStorage.setItem('locket_finance_v5', JSON.stringify(data));
     }
 
-    // --- LOGIC NGÀY THÁNG & TÍNH TOÁN ---
-    function getDaysLeftInMonth() {
-        const today = new Date();
-        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        return lastDay.getDate() - today.getDate() + 1; 
-    }
-    function isToday(dStr) {
-        const d = new Date(dStr), today = new Date();
-        return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
-    }
+    let tempPhotoBase64 = null;
+
+    // --- TÍNH TOÁN & HIỂN THỊ ---
     function formatMoney(num) { return num.toLocaleString('vi-VN') + 'đ'; }
 
     function calculateFinance() {
-        let income = data.baseIncome, expense = 0, fundDep = 0, fundWit = 0, todaySpent = 0;
+        let available = data.baseIncome;
         data.transactions.forEach(tx => {
-            if (tx.type === 'income') income += tx.amount;
-            if (tx.type === 'expense') { expense += tx.amount; if (isToday(tx.createdAt)) todaySpent += tx.amount; }
-            if (tx.type === 'fund_deposit') fundDep += tx.amount;
-            if (tx.type === 'fund_withdraw') fundWit += tx.amount;
+            if (tx.type === 'income') available += tx.amount;
+            else available -= tx.amount;
         });
-        const available = income - expense - fundDep + fundWit;
-        const fundBalance = fundDep - fundWit;
-        return { available, totalAssets: available + fundBalance, fundBalance, todaySpent };
+        return available;
     }
 
-    // --- UI NAVIGATION ---
-    function switchTab(tab) {
-        document.getElementById('screen-feed').classList.remove('active');
-        document.getElementById('screen-money').classList.remove('active');
-        document.getElementById('nav-feed').classList.remove('active');
-        document.getElementById('nav-money').classList.remove('active');
-        
-        document.getElementById(`screen-${tab}`).classList.add('active');
-        document.getElementById(`nav-${tab}`).classList.add('active');
-        updateUI();
-    }
-
-    // --- UPDATE UI ---
     function updateUI() {
-        const calc = calculateFinance();
-        const daysLeft = getDaysLeftInMonth();
-        const dailyAllowance = calc.available > 0 ? Math.floor(calc.available / daysLeft) : 0;
+        // Cập nhật số dư trên Pill
+        document.getElementById('ui-available').innerText = formatMoney(calculateFinance());
+        
+        // Cập nhật ảnh chính (Lấy giao dịch có ảnh gần nhất)
+        const photoTxs = data.transactions.filter(t => t.photo).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const photoContainer = document.getElementById('main-photo');
+        const placeholder = document.getElementById('photo-placeholder');
+        const textOverlay = document.getElementById('photo-text');
 
-        // Money Tab
-        document.getElementById('ui-available').innerText = formatMoney(calc.available);
-        document.getElementById('ui-total-assets').innerText = formatMoney(calc.totalAssets);
-        document.getElementById('ui-daily-allowance').innerText = `${formatMoney(dailyAllowance)} / ngày`;
-        document.getElementById('ui-today-budget').innerText = formatMoney(dailyAllowance);
-        document.getElementById('ui-today-spent').innerText = formatMoney(calc.todaySpent);
-        document.getElementById('ui-fund-balance').innerText = formatMoney(calc.fundBalance);
-
-        const remain = dailyAllowance - calc.todaySpent;
-        const bar = document.getElementById('ui-today-progress');
-        if (remain >= 0) {
-            document.getElementById('ui-today-remain').innerText = formatMoney(remain);
-            document.getElementById('ui-today-status-label').innerText = "Đã tiêu";
-            bar.style.width = dailyAllowance > 0 ? Math.min((calc.todaySpent / dailyAllowance) * 100, 100) + '%' : '0%';
-            bar.classList.remove('danger');
+        if (tempPhotoBase64) {
+            // Đang chụp ảnh mới
+            photoContainer.style.backgroundImage = `url('${tempPhotoBase64}')`;
+            placeholder.style.display = 'none';
+            textOverlay.innerText = '';
+        } else if (photoTxs.length > 0) {
+            // Hiển thị ảnh cũ
+            const latest = photoTxs[0];
+            photoContainer.style.backgroundImage = `url('${latest.photo}')`;
+            placeholder.style.display = 'none';
+            textOverlay.innerText = `${latest.note || 'Chi tiêu'} - ${formatMoney(latest.amount)}`;
         } else {
-            document.getElementById('ui-today-remain').innerText = `Vượt ${formatMoney(Math.abs(remain))}`;
-            document.getElementById('ui-today-status-label').innerText = "⚠️ Đã tiêu";
-            bar.style.width = '100%';
-            bar.classList.add('danger');
+            // Trống
+            photoContainer.style.backgroundImage = 'none';
+            placeholder.style.display = 'flex';
+            textOverlay.innerText = '';
         }
 
-        // Feed Tab
-        renderFeed();
+        renderHistory();
     }
 
-    function getIcon(note, type) {
-        if(type === 'income') return '💰';
-        if(type === 'fund_deposit' || type === 'fund_withdraw') return '🎯';
-        let n = note.toLowerCase();
-        if(n.includes('cơm') || n.includes('phở') || n.includes('ăn')) return '🍜';
-        if(n.includes('nước') || n.includes('trà') || n.includes('cafe')) return '🧋';
-        if(n.includes('xăng') || n.includes('xe')) return '⛽';
-        return '💸';
-    }
-
-    function renderFeed() {
-        const list = document.getElementById('ui-feed-list');
+    function renderHistory() {
+        const list = document.getElementById('ui-tx-list');
         list.innerHTML = '';
         const txs = [...data.transactions].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
         
-        if(txs.length === 0) {
-            list.innerHTML = '<div style="text-align:center; color:var(--text-muted); margin-top:40px;">Chưa có giao dịch nào. Nhấn 📷 để bắt đầu!</div>';
-            return;
-        }
-
-        let lastDate = '';
         txs.forEach(tx => {
-            const d = new Date(tx.createdAt);
-            const dateStr = d.toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'});
-            const timeStr = d.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+            const isInc = tx.type === 'income';
+            const timeStr = new Date(tx.createdAt).toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'}) + ' · ' + new Date(tx.createdAt).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
             
-            if (dateStr !== lastDate) {
-                list.innerHTML += `<div class="feed-date">${isToday(tx.createdAt) ? 'Hôm nay' : dateStr}</div>`;
-                lastDate = dateStr;
+            let avatarHtml = `<div class="tx-avatar">${isInc ? '💰' : '💸'}</div>`;
+            if (tx.photo) {
+                avatarHtml = `<div class="tx-avatar" style="background-image: url('${tx.photo}'); border-color: transparent;"></div>`;
             }
 
-            let html = '';
-            const sign = tx.type === 'income' ? '+' : '-';
-            const cls = tx.type === 'income' ? 'income' : '';
-            
-            if (tx.photo) {
-                html = `
-                <div class="photo-card" style="background-image: url('${tx.photo}')">
-                    <div class="photo-overlay">
-                        <div class="feed-info">
-                            <h3>${getIcon(tx.note, tx.type)} ${tx.note || 'Chi tiêu'}</h3>
-                            <div class="feed-meta">${timeStr}</div>
+            list.innerHTML += `
+                <div class="tx-item">
+                    <div class="tx-left">
+                        ${avatarHtml}
+                        <div class="tx-info">
+                            <span class="tx-name">${tx.note || 'Không ghi chú'}</span>
+                            <span class="tx-time">${timeStr}</span>
                         </div>
-                        <div class="feed-amount ${cls}">${sign}${formatMoney(tx.amount)}</div>
                     </div>
-                </div>`;
-            } else {
-                html = `
-                <div class="text-card">
-                    <div class="feed-info">
-                        <h3 style="font-size:16px;">${getIcon(tx.note, tx.type)} ${tx.note || 'Chi tiêu'}</h3>
-                        <div class="feed-meta">${timeStr}</div>
-                    </div>
-                    <div class="feed-amount ${cls}" style="font-size:18px;">${sign}${formatMoney(tx.amount)}</div>
-                </div>`;
-            }
-            list.innerHTML += html;
+                    <span class="tx-amount ${isInc ? 'income' : ''}">${isInc ? '+' : '-'}${formatMoney(tx.amount)}</span>
+                </div>
+            `;
         });
     }
 
-    // --- CAMERA SYSTEM (WebRTC) ---
-    let stream = null;
-    let facingMode = 'environment';
-    let currentPhotoBase64 = null;
-    let pAmount = 0; let pNote = ''; let pCat = 'expense';
-
-    async function initCamera() {
-        const video = document.getElementById('camera-view');
-        if (stream) { stream.getTracks().forEach(t => t.stop()); }
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
-            video.srcObject = stream;
-        } catch (err) {
-            console.error("Camera error:", err);
-            // Fallback for non-https or denied permission
-            alert("Không thể mở Camera gốc. Sẽ chuyển sang chế độ chọn ảnh.");
-            document.getElementById('hidden-file-input').click();
+    // --- NAVIGATION ---
+    function toggleHistory(show) {
+        if(show) {
+            document.getElementById('main-screen').classList.add('slide-left');
+            document.getElementById('history-screen').classList.add('active');
+        } else {
+            document.getElementById('main-screen').classList.remove('slide-left');
+            document.getElementById('history-screen').classList.remove('active');
         }
     }
 
-    function openCamera() {
-        document.getElementById('screen-camera').classList.add('show');
-        initCamera();
+    function promptIncome() {
+        let input = prompt("Nhập số dư hiện tại của bạn:", data.baseIncome);
+        if (input && !isNaN(input)) {
+            data.baseIncome = parseInt(input);
+            localStorage.setItem('locket_finance_v5', JSON.stringify(data));
+            updateUI();
+        }
     }
 
-    function closeCamera() {
-        document.getElementById('screen-camera').classList.remove('show');
-        if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-    }
-
-    function flipCamera() {
-        facingMode = facingMode === 'user' ? 'environment' : 'user';
-        initCamera();
-    }
-
-    function capturePhoto() {
-        const video = document.getElementById('camera-view');
-        const canvas = document.getElementById('photo-canvas');
-        if (!video.videoWidth) return;
-        
-        // Match aspect ratio of video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        if(facingMode === 'user') { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        processAndShowPreview(canvas.toDataURL('image/jpeg', 0.6));
-    }
-
-    // Handle Gallery Fallback/Upload
-    function handleGallerySelect(e) {
+    // --- XỬ LÝ ẢNH & NHẬP LIỆU ---
+    function handlePhotoCapture(e) {
         const file = e.target.files[0];
         if(!file) return;
         const reader = new FileReader();
         reader.onload = function(evt) {
             const img = new Image();
             img.onload = function() {
-                const canvas = document.getElementById('photo-canvas');
+                const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-                const maxSize = 800; 
+                const maxSize = 600; 
                 let w = img.width, h = img.height;
-                if(w > h) { if(w > maxSize) { h *= maxSize/w; w = maxSize; } } else { if(h > maxSize) { w *= maxSize/h; h = maxSize; } }
+                if(w > h) { if(w > maxSize) { h *= maxSize/w; w = maxSize; } } 
+                else { if(h > maxSize) { w *= maxSize/h; h = maxSize; } }
+                
                 canvas.width = w; canvas.height = h;
                 ctx.drawImage(img, 0, 0, w, h);
-                document.getElementById('screen-camera').classList.add('show');
-                processAndShowPreview(canvas.toDataURL('image/jpeg', 0.6));
+                tempPhotoBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                updateUI();
+                document.getElementById('amount-input').focus();
             }
             img.src = evt.target.result;
         }
         reader.readAsDataURL(file);
     }
 
-    function processAndShowPreview(base64Data) {
-        currentPhotoBase64 = base64Data;
-        const layer = document.getElementById('preview-layer');
-        layer.style.backgroundImage = `url('${base64Data}')`;
-        layer.classList.add('active');
-        setTimeout(() => { document.getElementById('smart-input').focus(); }, 300);
-    }
+    const inputField = document.getElementById('amount-input');
+    const hintText = document.getElementById('smart-hint');
 
-    function retakePhoto() {
-        document.getElementById('preview-layer').classList.remove('active');
-        document.getElementById('smart-input').value = '';
-        currentPhotoBase64 = null;
-        document.getElementById('smart-hint').innerText = "Gõ số tiền và ghi chú món đồ...";
-    }
-
-    // --- SMART INPUT & SAVE ---
-    function parseSmartInput() {
-        const val = document.getElementById('smart-input').value.trim();
-        const hint = document.getElementById('smart-hint');
-        if (!val) { pAmount = 0; pNote = ''; hint.innerText = "Gõ số tiền và ghi chú..."; return; }
-
-        const regex = /^(\d+[\.,]?\d*)([kKmM]?)\s*(.*)$/;
-        const match = val.match(regex);
-
-        if (match) {
+    inputField.addEventListener('input', function() {
+        const val = this.value.trim();
+        if(!val) { hintText.innerText = "Sẵn sàng ghi nhận."; return; }
+        
+        const match = val.match(/^(\d+[\.,]?\d*)([kKmM]?)\s*(.*)$/);
+        if(match) {
             let num = parseFloat(match[1].replace(/,/g, '.'));
             let unit = match[2].toLowerCase();
-            pNote = match[3].trim();
+            if(unit === 'k') num *= 1000; else if(unit === 'm') num *= 1000000; else if(num < 1000 && num > 0) num *= 1000;
+            hintText.innerHTML = `Sẽ lưu: <b>${formatMoney(num)}</b> - ${match[3] || 'Chi tiêu'}`;
+        } else {
+            hintText.innerText = "Chưa nhận diện được số tiền.";
+        }
+    });
 
-            if (unit === 'k') num *= 1000; else if (unit === 'm') num *= 1000000; else if (num < 1000 && num > 0) num *= 1000;
-            pAmount = num;
-            
-            pCat = (pNote.toLowerCase().includes('lương')) ? 'income' : 'expense';
-            hint.innerHTML = `Sẽ lưu: <b>${formatMoney(pAmount)}</b> - ${pNote || 'Chi tiêu'}`;
-        } else { pAmount = 0; hint.innerText = "Không nhận diện được số tiền."; }
+    function quickAddCategory(emoji) {
+        inputField.value += ' ' + emoji;
+        inputField.focus();
+        inputField.dispatchEvent(new Event('input'));
     }
 
     function saveTransaction() {
-        if (pAmount <= 0) { alert("Vui lòng nhập số tiền!"); return; }
+        const val = inputField.value.trim();
+        const match = val.match(/^(\d+[\.,]?\d*)([kKmM]?)\s*(.*)$/);
+        if(!match) { alert("Vui lòng gõ số tiền trước! (VD: 35k cơm)"); return; }
+
+        let num = parseFloat(match[1].replace(/,/g, '.'));
+        let unit = match[2].toLowerCase();
+        let note = match[3].trim();
+        if(unit === 'k') num *= 1000; else if(unit === 'm') num *= 1000000; else if(num < 1000 && num > 0) num *= 1000;
+
+        let type = note.toLowerCase().includes('lương') ? 'income' : 'expense';
 
         data.transactions.push({
-            id: Date.now().toString(), type: pCat, amount: pAmount, note: pNote || 'Chi tiêu',
-            photo: currentPhotoBase64, createdAt: new Date().toISOString()
+            id: Date.now().toString(), type: type, amount: num, note: note,
+            photo: tempPhotoBase64, createdAt: new Date().toISOString()
         });
-        localStorage.setItem('lm_data_v4', JSON.stringify(data));
         
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }});
+        localStorage.setItem('locket_finance_v5', JSON.stringify(data));
         
-        retakePhoto(); // reset form
-        closeCamera();
-        switchTab('feed'); // Về thẳng màn hình Feed xem ảnh
+        // Reset
+        inputField.value = '';
+        tempPhotoBase64 = null;
+        hintText.innerText = "Đã lưu thành công!";
+        setTimeout(() => hintText.innerText = "Sẵn sàng ghi nhận.", 2000);
+        updateUI();
     }
 
-    function promptIncome() {
-        let input = prompt("Nhập số tiền bạn đang có (Không tính quỹ):", data.baseIncome);
-        if (input !== null && !isNaN(input) && input.trim() !== "") {
-            data.baseIncome = parseInt(input);
-            localStorage.setItem('lm_data_v4', JSON.stringify(data));
-            updateUI();
-        }
-    }
+    // Trigger save on Enter key
+    inputField.addEventListener('keypress', function(e) {
+        if(e.key === 'Enter') saveTransaction();
+    });
 
     // Init
     updateUI();
